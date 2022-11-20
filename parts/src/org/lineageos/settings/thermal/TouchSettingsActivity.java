@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 The LineageOS Project
+ * Copyright (C) 2023 Paranoid Android
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import android.os.Bundle;
 import android.view.MenuItem;
 
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
-import com.android.settingslib.collapsingtoolbar.R;
+import com.android.settingslib.widget.R;
 
 public class TouchSettingsActivity extends CollapsingToolbarBaseActivity {
 
@@ -32,7 +32,7 @@ public class TouchSettingsActivity extends CollapsingToolbarBaseActivity {
         TouchSettingsFragment touchSettingsFragment = new TouchSettingsFragment();
         touchSettingsFragment.setArguments(getIntent().getExtras());
         getFragmentManager().beginTransaction().replace(R.id.content_frame,
-                touchSettingsFragment, TAG_TOUCH).commit();
+        touchSettingsFragment, TAG_TOUCH).commit();
     }
 
     @Override

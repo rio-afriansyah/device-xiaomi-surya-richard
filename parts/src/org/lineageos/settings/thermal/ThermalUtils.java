@@ -33,29 +33,28 @@ import org.lineageos.settings.utils.FileUtils;
 public final class ThermalUtils {
 
     private static final String THERMAL_CONTROL = "thermal_control";
+    private static final String THERMAL_SERVICE = "thermal_service";
 
     protected static final int STATE_DEFAULT = 0;
-    protected static final int STATE_BENCHMARK = 1;
+    protected static final int STATE_PERFORMANCE = 1;
     protected static final int STATE_CAMERA = 2;
     protected static final int STATE_DIALER = 3;
-    protected static final int STATE_GAMING = 4;
 
     private static final String THERMAL_STATE_DEFAULT = "0";
-    private static final String THERMAL_STATE_BENCHMARK = "10";
+    private static final String THERMAL_STATE_PERFORMANCE = "10";
     private static final String THERMAL_STATE_CAMERA = "12";
     private static final String THERMAL_STATE_DIALER = "8";
-    private static final String THERMAL_STATE_GAMING = "13";
 
-    private static final String THERMAL_BENCHMARK = "thermal.benchmark=";
+    private static final String THERMAL_PERFORMANCE = "thermal.performance=";
     private static final String THERMAL_CAMERA = "thermal.camera=";
     private static final String THERMAL_DIALER = "thermal.dialer=";
-    private static final String THERMAL_GAMING = "thermal.gaming=";
 
     private static final String THERMAL_SCONFIG = "/sys/class/thermal/thermal_message/sconfig";
 
     private boolean mTouchModeChanged;
 
     private Display mDisplay;
+
     private SharedPreferences mSharedPrefs;
 
     protected ThermalUtils(Context context) {
@@ -65,9 +64,26 @@ public final class ThermalUtils {
         mDisplay = mWindowManager.getDefaultDisplay();
     }
 
-    public static void startService(Context context) {
+    public static void initialize(Context context) {
+        if (isServiceEnabled(context))
+            startService(context);
+        else
+            setDefaultThermalProfile();
+    }
+
+    protected static void startService(Context context) {
         context.startServiceAsUser(new Intent(context, ThermalService.class),
                 UserHandle.CURRENT);
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putString(THERMAL_SERVICE, "true").apply();
+    }
+
+    protected static void stopService(Context context) {
+        context.stopService(new Intent(context, ThermalService.class));
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putString(THERMAL_SERVICE, "false").apply();
+    }
+
+    protected static boolean isServiceEnabled(Context context) {
+        return true;
     }
 
     private void writeValue(String profiles) {
@@ -78,8 +94,7 @@ public final class ThermalUtils {
         String value = mSharedPrefs.getString(THERMAL_CONTROL, null);
 
         if (value == null || value.isEmpty()) {
-            value = THERMAL_BENCHMARK + ":" + THERMAL_CAMERA + ":" +
-                    THERMAL_DIALER + ":" + THERMAL_GAMING;
+            value = THERMAL_PERFORMANCE + ":" + THERMAL_CAMERA + ":" + THERMAL_DIALER;
             writeValue(value);
         }
         return value;
@@ -92,7 +107,7 @@ public final class ThermalUtils {
         String finalString;
 
         switch (mode) {
-            case STATE_BENCHMARK:
+            case STATE_PERFORMANCE:
                 modes[0] = modes[0] + packageName + ",";
                 break;
             case STATE_CAMERA:
@@ -101,12 +116,9 @@ public final class ThermalUtils {
             case STATE_DIALER:
                 modes[2] = modes[2] + packageName + ",";
                 break;
-            case STATE_GAMING:
-                modes[3] = modes[3] + packageName + ",";
-                break;
         }
 
-        finalString = modes[0] + ":" + modes[1] + ":" + modes[2] + ":" + modes[3];
+        finalString = modes[0] + ":" + modes[1] + ":" + modes[2];
 
         writeValue(finalString);
     }
@@ -116,19 +128,16 @@ public final class ThermalUtils {
         String[] modes = value.split(":");
         int state = STATE_DEFAULT;
         if (modes[0].contains(packageName + ",")) {
-            state = STATE_BENCHMARK;
+            state = STATE_PERFORMANCE;
         } else if (modes[1].contains(packageName + ",")) {
             state = STATE_CAMERA;
         } else if (modes[2].contains(packageName + ",")) {
             state = STATE_DIALER;
-        } else if (modes[3].contains(packageName + ",")) {
-            state = STATE_GAMING;
         }
-
         return state;
     }
 
-    protected void setDefaultThermalProfile() {
+    protected static void setDefaultThermalProfile() {
         FileUtils.writeLine(THERMAL_SCONFIG, THERMAL_STATE_DEFAULT);
     }
 
@@ -141,18 +150,16 @@ public final class ThermalUtils {
             modes = value.split(":");
 
             if (modes[0].contains(packageName + ",")) {
-                state = THERMAL_STATE_BENCHMARK;
+                state = THERMAL_STATE_PERFORMANCE;
             } else if (modes[1].contains(packageName + ",")) {
                 state = THERMAL_STATE_CAMERA;
             } else if (modes[2].contains(packageName + ",")) {
                 state = THERMAL_STATE_DIALER;
-            } else if (modes[3].contains(packageName + ",")) {
-                state = THERMAL_STATE_GAMING;
             }
         }
         FileUtils.writeLine(THERMAL_SCONFIG, state);
 
-        if (state == THERMAL_STATE_BENCHMARK || state == THERMAL_STATE_GAMING) {
+        if (state == THERMAL_STATE_PERFORMANCE) {
             updateTouchModes(packageName);
         } else if (mTouchModeChanged) {
             resetTouchModes();

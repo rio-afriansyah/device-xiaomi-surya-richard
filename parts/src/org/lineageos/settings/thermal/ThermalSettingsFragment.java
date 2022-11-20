@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.lineageos.settings.thermal;
 
 import android.annotation.Nullable;
@@ -26,6 +25,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -58,8 +58,6 @@ public class ThermalSettingsFragment extends PreferenceFragment
     private ApplicationsState mApplicationsState;
     private ApplicationsState.Session mSession;
     private ActivityFilter mActivityFilter;
-    private Map<String, ApplicationsState.AppEntry> mEntryMap =
-            new HashMap<String, ApplicationsState.AppEntry>();
 
     private ThermalUtils mThermalUtils;
     private RecyclerView mAppsRecyclerView;
@@ -97,11 +95,9 @@ public class ThermalSettingsFragment extends PreferenceFragment
         mAppsRecyclerView.setAdapter(mAllPackagesAdapter);
     }
 
-
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setTitle(getResources().getString(R.string.thermal_title));
         rebuild();
     }
 
@@ -183,10 +179,6 @@ public class ThermalSettingsFragment extends PreferenceFragment
         }
 
         mAllPackagesAdapter.setEntries(entries, sections, positions);
-        mEntryMap.clear();
-        for (ApplicationsState.AppEntry e : entries) {
-            mEntryMap.put(e.info.packageName, e);
-        }
     }
 
     private void rebuild() {
@@ -195,14 +187,12 @@ public class ThermalSettingsFragment extends PreferenceFragment
 
     private int getStateDrawable(int state) {
         switch (state) {
-            case ThermalUtils.STATE_BENCHMARK:
-                return R.drawable.ic_thermal_benchmark;
+            case ThermalUtils.STATE_PERFORMANCE:
+                return R.drawable.ic_thermal_performance;
             case ThermalUtils.STATE_CAMERA:
                 return R.drawable.ic_thermal_camera;
             case ThermalUtils.STATE_DIALER:
                 return R.drawable.ic_thermal_dialer;
-            case ThermalUtils.STATE_GAMING:
-                return R.drawable.ic_thermal_gaming;
             case ThermalUtils.STATE_DEFAULT:
             default:
                 return R.drawable.ic_thermal_default;
@@ -235,10 +225,9 @@ public class ThermalSettingsFragment extends PreferenceFragment
         private final LayoutInflater inflater;
         private final int[] items = {
                 R.string.thermal_default,
-                R.string.thermal_benchmark,
+                R.string.thermal_performance,
                 R.string.thermal_camera,
-                R.string.thermal_dialer,
-                R.string.thermal_gaming,
+                R.string.thermal_dialer
         };
 
         private ModeAdapter(Context context) {
@@ -315,7 +304,7 @@ public class ThermalSettingsFragment extends PreferenceFragment
             holder.mode.setAdapter(new ModeAdapter(context));
             holder.mode.setOnItemSelectedListener(this);
             holder.touchIcon.setOnClickListener(v -> {
-                Intent intent = new Intent(getActivity(), TouchSettingsActivity.class);
+            Intent intent = new Intent(getActivity(), TouchSettingsActivity.class);
                 intent.putExtra("appName", entry.label);
                 intent.putExtra("packageName", entry.info.packageName);
                 startActivity(intent);
@@ -328,13 +317,13 @@ public class ThermalSettingsFragment extends PreferenceFragment
             int packageState = mThermalUtils.getStateForPackage(entry.info.packageName);
             holder.mode.setSelection(packageState, false);
             holder.mode.setTag(entry);
-            if (packageState == ThermalUtils.STATE_BENCHMARK ||
-                packageState == ThermalUtils.STATE_GAMING) {
+            if (packageState == ThermalUtils.STATE_PERFORMANCE) {
                 holder.touchIcon.setVisibility(View.VISIBLE);
             } else {
                 holder.touchIcon.setVisibility(View.INVISIBLE);
             }
             holder.stateIcon.setImageResource(getStateDrawable(packageState));
+            holder.stateIcon.setOnClickListener(v -> holder.mode.performClick());
         }
 
         private void setEntries(List<ApplicationsState.AppEntry> entries,
@@ -435,5 +424,14 @@ public class ThermalSettingsFragment extends PreferenceFragment
             }
             return show;
         }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            getActivity().onBackPressed();
+            return true;
+        }
+        return false;
     }
 }

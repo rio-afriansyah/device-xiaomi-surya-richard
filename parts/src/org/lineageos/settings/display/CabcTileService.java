@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Paranoid Android
+ * Copyright (C) 2021 Paranoid Android
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import android.service.quicksettings.TileService;
 import java.util.Arrays;
 
 import org.lineageos.settings.R;
+import org.lineageos.settings.utils.FileUtils;
 
 public class CabcTileService extends TileService {
 
@@ -57,6 +58,12 @@ public class CabcTileService extends TileService {
     public void onStartListening() {
         super.onStartListening();
         tile = getQsTile();
+        if (!FileUtils.fileExists(LcdFeaturesPreferenceFragment.CABC_NODE)) {
+            tile.setState(Tile.STATE_UNAVAILABLE);
+            tile.setSubtitle(getResources().getString(R.string.kernel_not_supported));
+            tile.updateTile();
+            return;
+        }
         updateCurrentCabcMode();
         updateCabcTile();
     }
